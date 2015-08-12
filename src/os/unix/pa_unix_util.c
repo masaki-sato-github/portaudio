@@ -684,7 +684,14 @@ error:
     pthread_exit( pres );
 }
 
-static void CallbackUpdate( PaAlsaThreading *th )
+static void CallbackUpdate
+    (
+#ifdef PA_USE_ALSA
+    PaAlsaThreading *th
+#else
+    PaIoaudioThreading *th
+#endif
+    )
 {
     th->callbackTime = PaUtil_GetTime();
     th->callbackCpuTime = PaUtil_GetCpuLoad( th->cpuLoadMeasurer );

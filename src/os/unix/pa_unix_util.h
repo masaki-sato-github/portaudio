@@ -94,6 +94,7 @@ static PaError paUtilErr_;          /* Used with PA_ENSURE */
     paUtilErr_ = (expr); \
     assert( success == paUtilErr_ );
 
+#if PA_USE_ALSA
 #define PA_ENSURE_SYSTEM(expr, success) \
     do { \
         if( UNLIKELY( (paUtilErr_ = (expr)) != success ) ) \
@@ -108,6 +109,23 @@ static PaError paUtilErr_;          /* Used with PA_ENSURE */
             goto error; \
         } \
     } while( 0 );
+#endif
+#if PA_USE_IOAUDIO
+#define PA_ENSURE_SYSTEM(expr, success) \
+    do { \
+        if( UNLIKELY( (paUtilErr_ = (expr)) != success ) ) \
+        { \
+            /* PaUtil_SetLastHostErrorInfo should only be used in the main thread */ \
+            if( pthread_equal(pthread_self(), paUnixMainThread) ) \
+            { \
+                PaUtil_SetLastHostErrorInfo( paIoaudio, paUtilErr_, strerror( paUtilErr_ ) ); \
+            } \
+            PaUtil_DebugPrint( "Expression '" #expr "' failed in '" __FILE__ "', line: " STRINGIZE( __LINE__ ) "\n" ); \
+            result = paUnanticipatedHostError; \
+            goto error; \
+        } \
+    } while( 0 );
+#endif
 
 typedef struct {
     pthread_t callbackThread;
